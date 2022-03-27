@@ -1,0 +1,30 @@
+routes
+
+api/ticket/create
+api/ticket/delete
+api/ticket/get
+api/ticket/get-by-user
+
+api/user/create
+api/user/update
+api/user/delete
+api/user/get
+
+api/auth/login
+
+objects
+
+ticket
+    id
+    expiry
+    purchased
+    users
+
+user
+    username
+    password
+    email
+    created
+
+
+
