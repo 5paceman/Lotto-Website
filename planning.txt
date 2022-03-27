@@ -16,6 +16,7 @@ objects
 
 ticket
     id
+    numbers
     expiry
     purchased
     users
