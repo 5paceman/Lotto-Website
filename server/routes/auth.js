@@ -8,29 +8,30 @@ var Token = require("../model/token");
  * Returns: JSON object with user token
  * Example Result: {'token':''}
  */
-router.post("/login", function(req, res, next) {
+router.post("/login", async function(req, res, next) {
     var username = req.body.username;
     var password = req.body.password;
-
-    var user = User.findOne({username: username});
+    console.log(password);
+    var user = await User.findOne({username: username});
     if(user)
     {
         user.comparePassword(password, function(err, isMatch) {
             if(err)
             {
                 console.log(err);
+                res.status(500).json({error: 'Password incorrect.'});
             } else {
                 if(isMatch) {
-                    var token = new Token({user: user});
+                    var token = new Token({user: user._id});
                     token.save();
-                    res.json({auth_token:token.token});
+                    res.status(200).json({auth_token:token.token});
                 } else {
-                    res.json({error: 'Password incorrect.'});
+                    res.status(400).json({error: 'Password incorrect.'});
                 }
             }
         });
     } else {
-        res.json({error: 'Invalid username'});
+        res.status(400).json({error: 'Invalid username'});
     }
 
 });

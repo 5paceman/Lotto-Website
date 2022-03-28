@@ -16,7 +16,7 @@ const emailRE = /^(([^<>()[\]\.,;:\s@\"]+(\.[^<>()[\]\.,;:\s@\"]+)*)|(\".+\"))@(
  * Params: Username, Password, Email
  * If sucessful returns login token if not will return an error
  */
-router.get("/create", function(req, res, next) {
+router.post("/create", async function(req, res, next) {
     var username = req.body.username;
     var password = req.body.password;
     var email = req.body.email;
@@ -25,7 +25,7 @@ router.get("/create", function(req, res, next) {
     {
         if(validatePassword(password))
         {
-            var user = User.findOne({username: username});
+            var user = await User.findOne({username: username});
             if(user) {
                 res.json({error: 'Username already exists'});
             } else {
@@ -35,16 +35,16 @@ router.get("/create", function(req, res, next) {
                     email: email
                 });
 
-                var createdUser = newUser.save(function(err) {
+                var createdUser = await newUser.save();
+
+                if(!createdUser) {
                     console.log(err);
                     res.json({error:'Unable to create new user, please try again shortly'});
-                });
-
-                if(createdUser)
-                {
-                    var newToken = new Token({user: createdUser});
+                } else {
+                    var newToken = new Token({user: createdUser._id});
                     newToken.save(function(err) {
-                        res.json({error: 'Unable to create auth token'});
+                        if(err)
+                            res.json({error: 'Unable to create auth token'});
                     });
                     
                     res.json({auth_token: newToken.token});
@@ -65,11 +65,11 @@ router.get("/create", function(req, res, next) {
  * Optional: password, email
  * Will update the user object for the current user with either a new password, email or both
  */
-router.get("/update", function(req, res, next) {
+router.post("/update", async function(req, res, next) {
     var password = req.body.password;
     var email = req.body.email;
 
-    var token = Token.findOne({token: req.body.auth_token});
+    var token = await Token.findOne({token: req.body.auth_token}).populate('user');
     if(token)
     {
         var username = token.user.username;
@@ -88,7 +88,7 @@ router.get("/update", function(req, res, next) {
             else
                 res.json({error:'Email is not valid.'});
         }
-        User.findOneAndUpdate({username: username}, updateObjects, function(err) { 
+        await User.findOneAndUpdate({username: username}, updateObjects, function(err) { 
             res.json({error: 'Unable to update user, please try again shortly.'});
             console.log(err);
         });
@@ -97,7 +97,7 @@ router.get("/update", function(req, res, next) {
     }
 });
 
-router.get("/delete", function(req, res, next) {
+router.post("/delete", function(req, res, next) {
     res.json({error:'Not implemented.'});
 });
 
@@ -106,8 +106,9 @@ router.get("/delete", function(req, res, next) {
  * Params: auth_token
  * Returns: JSON object with username, email, created date and if the user is an admin
  */
-router.get("/get", function(req, res, next) {
-    var token = Token.findOne({token: req.body.auth_token});
+router.get("/get", async function(req, res, next) {
+    console.log(req.query.auth_token);
+    var token = await Token.findOne({token: req.query.auth_token}).populate('user');
     if(token) {
         var user = token.user;
         var jsonUser = {
@@ -116,9 +117,9 @@ router.get("/get", function(req, res, next) {
             created: user.created,
             isAdmin: user.isAdmin
         };
-        res.json(jsonUser);
+        res.status(200).json(jsonUser);
     } else {
-        res.json({error:'Invalid auth token.'});
+        res.status(400).json({error:'Invalid auth token.'});
     }
     
 });
