@@ -11,7 +11,6 @@ var Token = require("../model/token");
 router.post("/login", async function(req, res, next) {
     var username = req.body.username;
     var password = req.body.password;
-    console.log(password);
     var user = await User.findOne({username: username});
     if(user)
     {

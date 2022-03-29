@@ -27,7 +27,7 @@ router.post("/create", async function(req, res, next) {
         {
             var user = await User.findOne({username: username});
             if(user) {
-                res.json({error: 'Username already exists'});
+                res.status(400).json({error: 'Username already exists'});
             } else {
                 var newUser = new User({
                     username: username,
@@ -39,22 +39,22 @@ router.post("/create", async function(req, res, next) {
 
                 if(!createdUser) {
                     console.log(err);
-                    res.json({error:'Unable to create new user, please try again shortly'});
+                    res.status(400).json({error:'Unable to create new user, please try again shortly'});
                 } else {
                     var newToken = new Token({user: createdUser._id});
                     newToken.save(function(err) {
                         if(err)
-                            res.json({error: 'Unable to create auth token'});
+                            res.status(400).json({error: 'Unable to create auth token'});
                     });
                     
-                    res.json({auth_token: newToken.token});
+                    res.status(200).json({auth_token: newToken.token});
                 }
             }
         } else {
-            res.json({error: 'Password does not meet complexity requirements.'});
+            res.status(400).json({error: 'Password does not meet complexity requirements.'});
         }
     } else {
-        res.json({error:'Email is not valid.'});
+        res.status(400).json({error:'Email is not valid.'});
     }
 
 });
@@ -78,7 +78,7 @@ router.post("/update", async function(req, res, next) {
             if(validatePassword(password))
                 updateObjects['password'] = password;
             else
-                res.json({error: 'Password does not meet complexity requirements.'});
+                res.status(400).json({error: 'Password does not meet complexity requirements.'});
         }
         
         if(email)
@@ -86,19 +86,45 @@ router.post("/update", async function(req, res, next) {
             if(email.toLowerCase().match(emailRE))
                 updateObjects['email'] = email;
             else
-                res.json({error:'Email is not valid.'});
+                res.status(400).json({error:'Email is not valid.'});
         }
-        await User.findOneAndUpdate({username: username}, updateObjects, function(err) { 
-            res.json({error: 'Unable to update user, please try again shortly.'});
+        await User.findOneAndUpdate({username: username}, updateObjects).then((doc) => { 
+            if(doc)
+            {
+                res.status(200).json({success: 'User updated successfully.'});
+            }
+        }).catch(err => {
+            res.status(400).json({error: 'Unable to update user, please try again shortly.'});
             console.log(err);
         });
     } else {
-        res.json({error:'Invalid auth token.'});
+        res.status(400).json({error:'Invalid auth token.'});
     }
 });
 
-router.post("/delete", function(req, res, next) {
-    res.json({error:'Not implemented.'});
+/* Deletes a user 
+ * @params: auth_token
+ * @returns: success or error message
+ */
+router.post("/delete", async function(req, res, next) {
+    var token = await Token.findOne({token: req.body.auth_token}).populate('user');
+    if(token)
+    {
+        var username = token.user.username;
+        User.deleteOne({username: username}).then((data) => {
+            if(data)
+            {
+                Token.deleteMany({user: token.user._id}).then((data) => {
+                    res.status(200).json({success: 'User deleted successfully.'});
+                }).catch((err) => {
+                    res.status(400).json({error: 'Unable to delete user, please try again shortly.'});
+                });
+
+            }
+        }).catch((err) => {
+            res.status(400).json({error: 'Unable to delete user, please try again shortly.'});
+        });
+    }
 });
 
 /*
@@ -107,7 +133,6 @@ router.post("/delete", function(req, res, next) {
  * Returns: JSON object with username, email, created date and if the user is an admin
  */
 router.get("/get", async function(req, res, next) {
-    console.log(req.query.auth_token);
     var token = await Token.findOne({token: req.query.auth_token}).populate('user');
     if(token) {
         var user = token.user;
