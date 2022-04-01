@@ -4,6 +4,8 @@ api/ticket/create
 api/ticket/delete
 api/ticket/get
 api/ticket/get-by-user
+api/ticket/check
+
 
 api/user/create
 api/user/update
@@ -27,5 +29,6 @@ user
     email
     created
 
-
+TODO:
+    Need to implement a error code system
 

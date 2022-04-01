@@ -1,16 +1,15 @@
-/* TODO:
- * - Auto increment ticket numbers
- */
-var mongoose = require("mongoose");
-var User = require('./user').schema;
+const mongoose = require("mongoose");
+const User = require('./user').schema;
+const crypto = require('crypto');
 
-var Schema = mongoose.Schema;
+const Schema = mongoose.Schema;
 
-var TicketSchema = new Schema({
-    id: {type: Number, required: true},
+
+let TicketSchema = new Schema({
+    id: {type: String, index: {unique: true}, default: function() { return crypto.randomBytes(5).toString('hex');},
     numbers: {type: [Number], requird: true},
     expiry: {type: Date, required: true},
-    purchased: {type: Date, required: true},
+    purchased: {type: Date, required: true, default: Date.now},
     users: {type: [mongoose.Schema.Types.ObjectId], ref: 'User', required: true} 
 });
 

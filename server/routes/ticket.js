@@ -11,20 +11,107 @@ const res = require("express/lib/response");
 
 const LOTTERY_URL = "https://www.national-lottery.co.uk/results/euromillions/draw-history/csv";
 
-router.post("/create", function(req, res, next) {
-    res.status(501).json({error: 'Not implemented'});
+router.post("/create", async function(req, res, next) {
+    let token = await Token.findOne({token: req.body.auth_token}).populate('user');
+    let users = req.body.users;
+    let numbers = req.body.numbers;
+    let expires = req.body.expires;
+
+    if(token)
+    {
+        if(token.user.isAdmin)
+        {
+            let ticket = new Ticket({
+                user: token.user,
+                numbers: numbers,
+                users: users,
+    
+            });
+            await ticket.save();
+            res.status(200).json({ succcess: "Ticket created" });
+        } else {
+            res.status(400).json({error: 'You are not an admin.'});
+        }
+    } else {
+            res.status(400).json({error: 'Please login.'});
+    }
+        
 });
 
-router.post("/delete", function(req, res, next) {
-    res.status(501).json({error: 'Not implemented'});
+router.post("/delete", async function(req, res, next) {
+    let token = await Token.findOne({token: req.body.auth_token}).populate('user');
+    if(token)
+    {
+        let user = token.user;
+        if(user.isAdmin)
+        {
+            if(req.body.id)
+            {
+                await Ticket.deleteOne({_id: req.body.id});
+                res.status(200).json({ success: "Ticket deleted" });
+            } else {
+                res.status(400).json({error: 'Please provide a ticket id.'});
+            }
+        }
+    }
 });
 
-router.get("/get", function(req, res, next) {
-    res.status(501).json({error: 'Not implemented'});
+router.get("/get", async function(req, res, next) {
+    let token = await Token.findOne({token: req.body.auth_token}).populate('user');
+    if(token)
+    {
+        let user = token.user;
+        if(user.isAdmin)
+        {
+            let ticket = await Ticket.findOne({id: req.query.id});
+            if(ticket)
+            {
+                res.status(200).json({
+                    id: ticket.id,
+                    numbers: ticket.numbers,
+                    users: ticket.users,
+                    expires: ticket.expires,
+                    purchased: ticket.purchased
+                });
+            } else {
+                res.status(400).json({error: 'Ticket not found.'});
+            }
+        }
+    }
 });
 
-router.get("/check", function(req, res, next) {
-    res.status(501).json({error: 'Not implemented'});
+router.get("/check", async function(req, res, next) {
+    let token = await Token.findOne({token: req.body.auth_token}).populate('user');
+    if(token)
+    {
+        let user = token.user;
+        if(user.isAdmin)
+        {
+            let ticket = await Ticket.findOne({id: req.query.id});
+            if(ticket)
+            {
+                if(ticket.expires <= new Date())
+                {
+                    let latestWinningNumbers = await getLatestNumbers();
+                    let correctNumbers = 0;
+                    for(let i = 0; i < latestWinningNumbers.length; i++)
+                    {
+                        if(ticket.numbers[i] == latestWinningNumbers[i])
+                        {
+                            correctNumbers++;
+                        }
+                    }
+
+                    res.status(200).json({
+                        succcess: "Ticket has been checked",
+                        totalWinningNumbers: correctNumbers
+                    })
+                }
+            } else {
+                res.status(400).json({error: 'Ticket not found.'});
+            }
+        }
+    }
 });
 
 router.get("/latest", async function(req, res, next) {
@@ -42,7 +129,7 @@ router.get("/latest", async function(req, res, next) {
  */
 function getLottoResultName()
 {
-    const date = new Date();
+    let date = new Date();
     const currentDay = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate();
     return currentDay + ".csv";
 }

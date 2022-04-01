@@ -1,7 +1,7 @@
-var express = require("express");
-var router = express.Router();
-var User = require("../model/user");
-var Token = require("../model/token");
+const express = require("express");
+const router = express.Router();
+const User = require("../model/user");
+const Token = require("../model/token");
 
 
 /* Checks the users credentials and returns a login token
@@ -9,9 +9,9 @@ var Token = require("../model/token");
  * Example Result: {'token':''}
  */
 router.post("/login", async function(req, res, next) {
-    var username = req.body.username;
-    var password = req.body.password;
-    var user = await User.findOne({username: username});
+    let username = req.body.username;
+    let password = req.body.password;
+    let user = await User.findOne({username: username});
     if(user)
     {
         user.comparePassword(password, function(err, isMatch) {
@@ -21,7 +21,7 @@ router.post("/login", async function(req, res, next) {
                 res.status(500).json({error: 'Password incorrect.'});
             } else {
                 if(isMatch) {
-                    var token = new Token({user: user._id});
+                    let token = new Token({user: user._id});
                     token.save();
                     res.status(200).json({auth_token:token.token});
                 } else {

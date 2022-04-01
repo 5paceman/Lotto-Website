@@ -1,7 +1,7 @@
-var express = require("express");
-var User = require("../model/user");
-var Token = require("../model/token");
-var router = express.Router();
+const express = require("express");
+const User = require("../model/user");
+const Token = require("../model/token");
+const router = express.Router();
 
 /* Password Requirements */
 const MIN_CHARACTERS = 8;
@@ -17,31 +17,31 @@ const emailRE = /^(([^<>()[\]\.,;:\s@\"]+(\.[^<>()[\]\.,;:\s@\"]+)*)|(\".+\"))@(
  * If sucessful returns login token if not will return an error
  */
 router.post("/create", async function(req, res, next) {
-    var username = req.body.username;
-    var password = req.body.password;
-    var email = req.body.email;
+    let username = req.body.username;
+    let password = req.body.password;
+    let email = req.body.email;
 
     if(email.toLowerCase().match(emailRE))
     {
         if(validatePassword(password))
         {
-            var user = await User.findOne({username: username});
+            let user = await User.findOne({username: username});
             if(user) {
                 res.status(400).json({error: 'Username already exists'});
             } else {
-                var newUser = new User({
+                let newUser = new User({
                     username: username,
                     password: password,
                     email: email
                 });
 
-                var createdUser = await newUser.save();
+                let createdUser = await newUser.save();
 
                 if(!createdUser) {
                     console.log(err);
                     res.status(400).json({error:'Unable to create new user, please try again shortly'});
                 } else {
-                    var newToken = new Token({user: createdUser._id});
+                    let newToken = new Token({user: createdUser._id});
                     newToken.save(function(err) {
                         if(err)
                             res.status(400).json({error: 'Unable to create auth token'});
@@ -66,14 +66,14 @@ router.post("/create", async function(req, res, next) {
  * Will update the user object for the current user with either a new password, email or both
  */
 router.post("/update", async function(req, res, next) {
-    var password = req.body.password;
-    var email = req.body.email;
+    let password = req.body.password;
+    let email = req.body.email;
 
-    var token = await Token.findOne({token: req.body.auth_token}).populate('user');
+    let token = await Token.findOne({token: req.body.auth_token}).populate('user');
     if(token)
     {
-        var username = token.user.username;
-        var updateObjects = {};
+        let username = token.user.username;
+        let updateObjects = {};
         if(password) {
             if(validatePassword(password))
                 updateObjects['password'] = password;
@@ -107,10 +107,10 @@ router.post("/update", async function(req, res, next) {
  * @returns: success or error message
  */
 router.post("/delete", async function(req, res, next) {
-    var token = await Token.findOne({token: req.body.auth_token}).populate('user');
+    let token = await Token.findOne({token: req.body.auth_token}).populate('user');
     if(token)
     {
-        var username = token.user.username;
+        let username = token.user.username;
         User.deleteOne({username: username}).then((data) => {
             if(data)
             {
@@ -133,10 +133,10 @@ router.post("/delete", async function(req, res, next) {
  * Returns: JSON object with username, email, created date and if the user is an admin
  */
 router.get("/get", async function(req, res, next) {
-    var token = await Token.findOne({token: req.query.auth_token}).populate('user');
+    let token = await Token.findOne({token: req.query.auth_token}).populate('user');
     if(token) {
-        var user = token.user;
-        var jsonUser = {
+        let user = token.user;
+        let jsonUser = {
             username: user.username,
             email: user.email,
             created: user.created,
@@ -157,10 +157,10 @@ router.get("/get", async function(req, res, next) {
 function validatePassword(password) {
     if(password.length >= MIN_CHARACTERS)
     {
-        var upperCount = password.length - password.replace(/[A-Z]/g, '').length;
+        let upperCount = password.length - password.replace(/[A-Z]/g, '').length;
         if(upperCount >= MIN_UPPER)
         {
-            var specialCount = password.length - password.replace(/[a-zA-Z0-9!@#\$%\^\&*\)\(+=._-]/g, '').length;
+            let specialCount = password.length - password.replace(/[a-zA-Z0-9!@#\$%\^\&*\)\(+=._-]/g, '').length;
             if(specialCount >= MIN_SPECIAL)
             {
                 return true;
