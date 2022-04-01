@@ -6,7 +6,7 @@ const Token = require("../model/token");
 
 /* Checks the users credentials and returns a login token
  * Returns: JSON object with user token
- * Example Result: {'token':''}
+ * Example Result: {auth_token:''}
  */
 router.post("/login", async function(req, res, next) {
     let username = req.body.username;
@@ -18,7 +18,7 @@ router.post("/login", async function(req, res, next) {
             if(err)
             {
                 console.log(err);
-                res.status(500).json({error: 'Password incorrect.'});
+                res.status(400).json({error: 'Password incorrect.'});
             } else {
                 if(isMatch) {
                     let token = new Token({user: user._id});
