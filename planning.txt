@@ -31,4 +31,5 @@ user
 
 TODO:
     Need to implement a error code system
+    !! /api/user/get?auth_token should not lookup users with auth tokens, any user who hasnt generated a login token withing the timeout period wont be able to be looked up. This needs to be changed to lookup based on username and then authed for access
 

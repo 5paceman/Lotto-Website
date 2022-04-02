@@ -134,3 +134,9 @@ describe("User API", () => {
             })
         })
 });
+
+describe("Ticket API", () => {
+    it("should be able to create ticket", () => {
+        
+    });
+});
