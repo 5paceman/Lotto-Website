@@ -6,7 +6,7 @@ const Schema = mongoose.Schema;
 
 
 let TicketSchema = new Schema({
-    id: {type: String, index: {unique: true}, default: function() { return crypto.randomBytes(5).toString('hex');},
+    id: {type: String, index: {unique: true}, default: function() { return crypto.randomBytes(5).toString('hex'); } },
     numbers: {type: [Number], requird: true},
     expiry: {type: Date, required: true},
     purchased: {type: Date, required: true, default: Date.now},
