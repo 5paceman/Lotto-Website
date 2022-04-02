@@ -69,7 +69,7 @@ router.post("/update", async function(req, res, next) {
     let password = req.body.password;
     let email = req.body.email;
 
-    let token = await Token.findOne({token: req.body.auth_token}).populate('user');
+    let token = await Token.findOne({token: req.headers['auth_token']}).populate('user');
     if(token)
     {
         let username = token.user.username;
@@ -107,7 +107,7 @@ router.post("/update", async function(req, res, next) {
  * @returns: success or error message
  */
 router.post("/delete", async function(req, res, next) {
-    let token = await Token.findOne({token: req.body.auth_token}).populate('user');
+    let token = await Token.findOne({token: req.headers['auth_token']}).populate('user');
     if(token)
     {
         let username = token.user.username;
