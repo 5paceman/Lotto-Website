@@ -12,30 +12,32 @@ const LottoTicket = require("../model/lottoTicket").LottoTicket;
 const LOTTERY_URL = "https://www.national-lottery.co.uk/results/euromillions/draw-history/csv";
 
 router.post("/create", async function(req, res, next) {
-    let token = await Token.findOne({token: req.headers['auth_token']}).populate('user');
-    let users = req.body.users;
-    let numbers = req.body.numbers;
-    let expires = req.body.expires;
-
-    if(token)
-    {
-        if(token.user.isAdmin)
-        {
-            let ticket = new Ticket({
-                user: token.user,
-                numbers: numbers,
-                users: users,
-                expiry: expires
-            });
-            await ticket.save();
-            res.status(200).json({ succcess: "Ticket created" });
-        } else {
-            res.status(400).json({error: 'You are not an admin.'});
-        }
+    if(!req.headers['auth_token']) {
+        res.status(401).send("No auth token provided");
     } else {
-            res.status(400).json({error: 'Please login.'});
-    }
-        
+        let token = await Token.findOne({token: req.headers['auth_token']}).populate('user');
+        let users = req.body.users;
+        let numbers = req.body.numbers;
+        let expires = req.body.expires;
+
+        if(token)
+        {
+            if(token.user.isAdmin)
+            {
+                let ticket = new Ticket({
+                    numbers: numbers,
+                    users: users,
+                    expiry: expires
+                });
+                let createdTicket = await ticket.save();
+                res.status(200).json({ ticket_id: createdTicket.id });
+            } else {
+                res.status(400).json({error: 'You are not an admin.'});
+            }
+        } else {
+                res.status(400).json({error: 'Please login.'});
+        }
+    }  
 });
 
 router.post("/delete", async function(req, res, next) {
@@ -45,9 +47,9 @@ router.post("/delete", async function(req, res, next) {
         let user = token.user;
         if(user.isAdmin)
         {
-            if(req.body.id)
+            if(req.body.ticket_id)
             {
-                await Ticket.deleteOne({_id: req.body.id});
+                await Ticket.deleteOne({id: req.body.ticket_id});
                 res.status(200).json({ success: "Ticket deleted" });
             } else {
                 res.status(400).json({error: 'Please provide a ticket id.'});
@@ -63,14 +65,14 @@ router.get("/get", async function(req, res, next) {
         let user = token.user;
         if(user.isAdmin)
         {
-            let ticket = await Ticket.findOne({id: req.query.id});
+            let ticket = await Ticket.findOne({id: req.query.ticket_id});
             if(ticket)
             {
                 res.status(200).json({
-                    id: ticket.id,
+                    ticket_id: ticket.id,
                     numbers: ticket.numbers,
                     users: ticket.users,
-                    expiry: ticket._expiry,
+                    expiry: ticket.expiry,
                     purchased: ticket.purchased
                 });
             } else {
@@ -85,30 +87,25 @@ router.get("/check", async function(req, res, next) {
     if(token)
     {
         let user = token.user;
-        if(!user.isAdmin)
+        let ticket = await Ticket.findOne({id: req.query.ticket_id});
+        if(ticket)
         {
-            let ticket = await Ticket.findOne({id: req.query.id});
-            if(ticket)
+            let lottoTicket = new LottoTicket(ticket.numbers, ticket.expiry);
+            if(lottoTicket.shouldCheckTicket())
             {
-                let lottoTicket = new LottoTicket(ticket.numbers, ticket.expiry);
-                if(lottoTicket.shouldCheckTicket())
-                {
-                    let winningNumbers = await getLatestLottoNumbers();
-                    let winnings = lottoTicket.calculateWinnings(winningNumbers.mainNumbers, winningNumbers.luckyStars);
-                    res.status(200).json({
-                        winning: (winnings > 0 || winnings == 'JACKPOT'),
-                        winnings: winnings,
-                        winningMainNumbers: lottoTicket.totalWinningMainNumbers,
-                        winningLuckyStars: lottoTicket.totalWinningLuckyStars
-                    });
-                } else {
-                    res.status(400).json({error: 'Ticket not called yet.'});
-                }
+                let winningNumbers = await getLatestLottoNumbers();
+                let winnings = lottoTicket.calculateWinnings(winningNumbers.mainNumbers, winningNumbers.luckyStars);
+                res.status(200).json({
+                    winning: (winnings > 0 || winnings == 'JACKPOT'),
+                    winnings: winnings,
+                    winningMainNumbers: lottoTicket.totalWinningMainNumbers,
+                    winningLuckyStars: lottoTicket.totalWinningLuckyStars
+                });
             } else {
-                res.status(400).json({error: 'Ticket not found.'});
+                res.status(400).json({error: 'Ticket not called yet.'});
             }
         } else {
-            res.status(400).json({error: 'You are not an admin.'});
+            res.status(400).json({error: 'Ticket not found.'});
         }
     } else {
         res.status(400).json({error: 'Please login.'});
@@ -116,13 +113,16 @@ router.get("/check", async function(req, res, next) {
 });
 
 router.get("/latest", async function(req, res, next) {
-    let numbers = await getLatestLottoNumbers()
-        .then((numbers) => {
+    let token = await Token.findOne({token: req.headers['auth_token']}).populate('user');
+    if(token)
+    {
+        try {
+            let numbers = await getLatestLottoNumbers();
             res.status(200).json(numbers);
-        })
-        .catch((err) => {
+        } catch (err) {
             res.status(400).json({error: "Unable to get latest numbers"});
-        });
+        }
+    }
 });
 
 /* Gets the file name for the latest lotto result

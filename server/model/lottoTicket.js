@@ -18,7 +18,7 @@ class LottoTicket {
     /* Checks if ticket has been pulled yet
      * @returns {Boolean} true if ticket has been pulled
      */
-    shouldCheckTicket(winningMainNumbers, winningLuckyStars) {
+    shouldCheckTicket() {
         const currentTime = new Date();
         return this._expiry.getTime() <= currentTime.getTime();
     }
